@@ -1,0 +1,171 @@
+---
+title: "Capstone II"
+author: "Tim Scherman"
+date: "2024-08-10"
+output: html_document
+---
+
+```{r}
+Seasons <- read.csv('Seasons_Stats.csv', na.strings = c("", "NA"))
+View(Seasons)
+```
+
+```{r}
+SeasonsNew <- Seasons %>% filter(MP/G >= 20, PER > 18, USG. > 15, G > 60, Year != 1999)
+View(SeasonsNew)
+```
+
+
+```{r}
+PlayerSeasons_table <- SeasonsNew %>%
+  group_by(College) %>%
+    summarize( 
+    Num_of_Players = n(),
+    Total_Titles = sum(Championships, na.rm = TRUE),
+    Average_PER = format(mean(PER, na.rm = TRUE), digits = 3),
+    Average_USG_PCT = format(mean(USG., na.rm = TRUE), digits = 3),
+    Average_WS_per_48 = format(mean(WS.48, na.rm = TRUE), digits = 3),
+    Average_VORP = format(mean(VORP, na.rm = TRUE), digits = 2),
+    Average_PTS = format(mean(PTS/G, na.rm = TRUE), digits = 3),
+    Average_TRB = format(mean(TRB/G, na.rm = TRUE), digits = 2),
+    Average_AST = format(mean(AST/G, na.rm = TRUE), digits = 2)
+  ) %>% filter(Num_of_Players >= 15, College != 0, College != '#N/A')
+
+PlayerSeasons_table_sorted <- PlayerSeasons_table[order(PlayerSeasons_table$Num_of_Players, decreasing = TRUE),]
+
+View(PlayerSeasons_table_sorted)
+```
+
+```{r}
+plot1 <- ggplot(SeasonsNew) +
+  geom_point(aes(x = Year, y = VORP, color = Pos)) +
+  geom_smooth(aes(x = Year, y = VORP, linetype = Pos)) +
+  facet_wrap(~ Pos, nrow = 3)
+
+plot1 
+```
+```{r}
+plot2 <- ggplot(PlayerSeasons_table_sorted) +
+  geom_col(aes(x = reorder(College, -Num_of_Players), y = Num_of_Players, fill = Total_Titles, color = Total_Titles)) +
+  coord_cartesian(ylim = c(0, 60)) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(x = "School", y = "# of Players from School", title = "                       Most NBA Titles per School 1978-2017")
+
+plot2 
+```
+```{r}
+PlayerSeasons_table2 <- SeasonsNew %>%
+  group_by(Player, Pos) %>%
+    summarize( 
+    Total_Titles = sum(Championships, na.rm = TRUE),
+    Average_PER = format(mean(PER, na.rm = TRUE), digits = 3),
+    Average_USG_PCT = format(mean(USG., na.rm = TRUE), digits = 3),
+    Average_WS_per_48 = format(mean(WS.48, na.rm = TRUE), digits = 3),
+    Average_VORP = format(mean(VORP, na.rm = TRUE), digits = 2),
+    Average_PTS = format(mean(PTS/G, na.rm = TRUE), digits = 3),
+    Average_TRB = format(mean(TRB/G, na.rm = TRUE), digits = 2),
+    Average_AST = format(mean(AST/G, na.rm = TRUE), digits = 2)
+  ) %>% filter(Average_VORP >= 4, Total_Titles > 0)
+
+PlayerSeasons_table2_sorted <- PlayerSeasons_table2[order(PlayerSeasons_table2$Total_Titles, decreasing = TRUE),]
+
+View(PlayerSeasons_table2_sorted)
+```
+
+```{r}
+Player_VORP_regression <- lm(Average_VORP ~ Total_Titles, data = PlayerSeasons_table2_sorted)
+summary(Player_VORP_regression)
+```
+```{r}
+Player_WS_regression <- lm(Average_WS_per_48 ~ Total_Titles, data = PlayerSeasons_table2_sorted)
+summary(Player_WS_regression)
+```
+```{r}
+Player_PER_regression <- lm(Average_PER ~ Total_Titles, data = PlayerSeasons_table2_sorted)
+summary(Player_PER_regression)
+```
+```{r}
+PlayerSeasons_table3_sorted <- PlayerSeasons_table2[order(PlayerSeasons_table2$Average_WS_per_48, decreasing = TRUE),]
+
+View(PlayerSeasons_table3_sorted)
+```
+
+
+```{r}
+plot3 <- ggplot(SeasonsNew) +
+  geom_line(aes(x = Year, y = BPM, color = Pos)) +
+  geom_smooth(aes(x = Year, y = BPM, linetype = Pos)) +
+  facet_wrap(~ Pos, nrow = 3)
+
+plot3
+```
+```{r}
+plot4 <- ggplot(SeasonsNew) +
+  geom_line(aes(x = Year, y = OWS, color = Pos)) +
+  geom_smooth(aes(x = Year, y = OWS, linetype = Pos)) +
+  facet_wrap(~ Pos, nrow = 5, ncol = 2)
+
+plot4
+```
+```{r}
+plot5 <- ggplot(SeasonsNew) +
+  geom_line(aes(x = Year, y = DWS, color = Pos)) +
+  geom_smooth(aes(x = Year, y = DWS, linetype = Pos)) +
+  facet_wrap(~ Pos, nrow = 5, ncol = 2)
+
+plot5
+```
+```{r}
+plot6 <- ggplot(SeasonsNew, aes(x = Year, y = USG.)) +
+  geom_line(aes(x = Year, y = USG., color = Pos)) +
+  geom_smooth(aes(x = Year, y = USG., linetype = Pos)) +
+  facet_wrap(~ Pos, nrow = 5, ncol = 2)
+
+plot6
+```
+```{r}
+SeasonsNew2 <- SeasonsNew %>% filter(Year >= 2003)
+
+View(SeasonsNew3)
+```
+
+```{r}
+plot7 <- ggplot(SeasonsNew2, aes(x = VORP, y = fct_reorder(Pos, VORP, median))) + 
+  geom_boxplot() +
+  facet_wrap(~ Year) +
+  labs(x = "VORP", y = "Position", title = "                             Average VORP by Position 2003-2017")
+
+plot7
+```
+```{r}
+heat_plot <- select(Seasons, PTS, PER, USG., OWS, DWS, WS, WS.48, OBPM, DBPM, BPM, VORP)
+
+corrs <- cor(heat_plot, use = "pairwise.complete.obs")
+
+heatmap_plot <- ggcorrplot(corrs, hc.order = TRUE, lab = TRUE)
+
+heatmap_plot
+```
+
+```{r}
+plot8 <- ggscatter(SeasonsNew2, x = "BPM", y = "VORP", add = "reg.line", color = "Pos") + 
+  geom_point(aes(color = Pos)) +
+  stat_cor(aes(color = Pos, label = paste(..rr.label.., sep = "~`,`~"))) +
+  labs(x = "Box Score +/-", y = "Value Over Replacement", title = "                     Value Over Replacement vs Box Score +/- 2003-2017")
+
+plot8
+```
+```{r}
+plot9 <- ggscatter(SeasonsNew2, x = "OWS", y = "WS", add = "reg.line", color = "Pos") + 
+  geom_point(aes(color = Pos)) +
+  stat_cor(aes(color = Pos, label = paste(..rr.label.., sep = "~`,`~"))) +
+  labs(x = "Offensive Win Shares", y = "Win Shares", title = "                         Win Shares vs Offensive Win Shares 2003-2017")
+
+plot9
+```
+```{r}
+SeasonsNew4 <- Seasons %>% filter(Year == 2017)
+View(SeasonsNew4)
+```
+
+
